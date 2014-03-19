@@ -1,0 +1,60 @@
+#!/bin/sh
+# /usr/lib/sa/sa2.sh
+# (C) 1999-2004 Sebastien Godard (sysstat <at> wanadoo.fr)
+#
+# Changes:
+# - 2004-01-22 Nils Philippsen <nphilipp@redhat.com>
+#   make history configurable
+# - 2010-05-01 George Robinson <Robinson@TechTamer.net>
+#    changed date to use 6 digits
+#    added 8 day and 15 day cumlative reports for use by kSar
+#    made root dir configurable
+#
+
+HISTORY=99
+
+# This line looks in /etc/sysconfig/sysstat to set HISTORY
+#[ -r /etc/sysconfig/sysstat ] && . /etc/sysconfig/sysstat
+S_TIME_FORMAT=ISO ; export S_TIME_FORMAT
+
+umask 0022
+DATE=`/bin/date +%Y%m%d`
+SHORTDATE=`/bin/date +%d`
+SADIR=/var/log/sa
+RPT=${SADIR}/sar${DATE}
+ENDIR=/usr/bin
+DFILE=${SADIR}/sa${DATE}
+LINKNAME=${SADIR}/sar${SHORTDATE}
+[ -f "$DFILE" ] || exit 1
+cd ${ENDIR}
+SHORTHOSTNAME=`/bin/hostname -s`
+EIGHTDAYFILENAME=${SADIR}/${SHORTHOSTNAME}-8day
+FIFTEENDAYFILENAME=${SADIR}/${SHORTHOSTNAME}-15day
+
+# Output sar reports
+${ENDIR}/sar $* -f ${DFILE} > ${RPT}
+
+# Delete files greater than $HISTORY days old
+/usr/bin/find ${SADIR} \( -name 'sar????????' -o -name 'sa????????' \) -mtime +"$HISTORY" -exec /bin/rm -f {} \;
+
+# Delete links greater that 25 days old
+/usr/bin/find ${SADIR} \( -name 'sar??' -o -name 'sa??' \) -mtime +"$HISTORY" -exec /bin/rm -f {} \;
+
+# Delete old cumlative reports
+if [ -f ${EIGHTDAYFILENAME} ] ; then
+	/bin/rm ${EIGHTDAYFILENAME}
+fi
+if [ -f ${FIFTEENDAYFILENAME} ] ; then
+	/bin/rm ${FIFTEENDAYFILENAME}
+fi
+
+# Create new cumlative reports
+/usr/bin/find "$SADIR" -name 'sar????????' -mtime -8 -exec /bin/cat {} >> $EIGHTDAYFILENAME \;
+/usr/bin/find "$SADIR" -name 'sar????????' -mtime -15 -exec /bin/cat {} >> $FIFTEENDAYFILENAME \;
+
+# Create symbolic link to traditional filename
+/bin/ln -s ${RPT} ${LINKNAME}
+
+
+
+exit 0

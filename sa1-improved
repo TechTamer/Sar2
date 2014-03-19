@@ -1,0 +1,29 @@
+#!/bin/sh
+# PREFIX/lib/sa/sa1.sh
+# (C) 1999-2004 Sebastien Godard (sysstat <at> wanadoo.fr)
+#Achanged
+#   made log directory configurable
+#   made date six digits
+
+umask 0022
+DATE=`/bin/date +%Y%m%d`
+SHORTDATE=`/bin/date +%d`
+ENDIR=/usr/lib64/sa
+SADIR=/var/log/sa
+DFILE=${SADIR}/sa${DATE}
+LINKNAME=${SADIR}/sa${SHORTDATE}
+
+# Create symbolic link for today
+if [ -e "${DFILE}" -a ! -L "${LINKNAME}" ] ; then
+        /bin/ln -s ${DFILE} ${LINKNAME}
+fi
+
+cd ${ENDIR}
+if [ $# = 0 ]
+then
+	exec ${ENDIR}/sadc -F -L 1 1 ${DFILE}
+else
+	exec ${ENDIR}/sadc -F -L $* ${DFILE}
+fi
+
+exit 0
